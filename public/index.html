@@ -1,0 +1,27 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Team Ranker</title>
+<style>
+body{font-family:Arial}
+.team{display:inline-block;margin:15px;vertical-align:top}
+li{list-style:none;border:1px solid #ccc;padding:6px;margin:4px;cursor:grab}
+</style>
+</head>
+<body>
+
+<h3>Add Item (All Teams)</h3>
+<input id="text"><input id="num" type="number">
+<button onclick="addItem()">Add</button>
+
+<h3>Teams</h3>
+<input id="teamName"><button onclick="addTeam()">Add Team</button>
+<button onclick="exportCSV()">Export CSV</button>
+<input type="file" onchange="importCSV(event)">
+
+<div id="lists"></div>
+<script src="script.js"></script>
+</body>
+</html>

@@ -39,11 +39,13 @@ ul.addEventListener("dragover", (e) => {
 ul.addEventListener("drop", (e) => {
   e.preventDefault();
 
-  const children = Array.from(ul.children);
-  let dropIndex = children.length;
+  if (dragIndex === null) return;
 
-  for (let i = 0; i < children.length; i++) {
-    const rect = children[i].getBoundingClientRect();
+  const items = Array.from(ul.children);
+  let dropIndex = items.length;
+
+  for (let i = 0; i < items.length; i++) {
+    const rect = items[i].getBoundingClientRect();
     const midpoint = rect.top + rect.height / 2;
 
     if (e.clientY < midpoint) {
@@ -52,7 +54,7 @@ ul.addEventListener("drop", (e) => {
     }
   }
 
-  if (dragIndex === null || dragIndex === dropIndex) return;
+  if (dropIndex === dragIndex) return;
 
   const updated = [...teams[team]];
   const [moved] = updated.splice(dragIndex, 1);
@@ -65,7 +67,10 @@ ul.addEventListener("drop", (e) => {
   }));
 
   dragIndex = null;
-  });
+});
+
+    div.appendChild(ul);
+    lists.appendChild(div);
   }
 }
 

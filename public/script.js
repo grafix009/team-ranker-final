@@ -18,39 +18,54 @@ function render(teams) {
       <button onclick="deleteTeam('${team}')">Delete</button>`;
 
     const ul = document.createElement("ul");
-    let dragIndex = null;
+let dragIndex = null;
 
-    teams[team].forEach((item, idx) => {
-      const li = document.createElement("li");
-      li.textContent = `${idx+1}. ${item.text}`;
-      li.draggable = true;
+teams[team].forEach((item, idx) => {
+  const li = document.createElement("li");
+  li.textContent = `${idx + 1}. ${item.text}`;
+  li.draggable = true;
 
-      li.ondragstart = e => dragIndex = idx;
+  li.addEventListener("dragstart", () => {
+    dragIndex = idx;
+  });
 
-      ul.appendChild(li);
-    });
+  ul.appendChild(li);
+});
 
-    ul.ondragover = e => e.preventDefault();
+ul.addEventListener("dragover", (e) => {
+  e.preventDefault();
+});
 
-    ul.ondrop = e => {
-      const rect = ul.getBoundingClientRect();
-      const y = e.clientY - rect.top;
-      let to = teams[team].length - 1;
-      let h = 0;
+ul.addEventListener("drop", (e) => {
+  e.preventDefault();
 
-      [...ul.children].forEach((li,i)=>{
-        h += li.offsetHeight;
-        if (y < h/2) to = i;
-      });
+  const children = Array.from(ul.children);
+  let dropIndex = children.length;
 
-      const arr = [...teams[team]];
-      const moved = arr.splice(dragIndex,1)[0];
-      arr.splice(to,0,moved);
-      socket.send(JSON.stringify({type:"reorder",team,items:arr}));
-    };
+  for (let i = 0; i < children.length; i++) {
+    const rect = children[i].getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
 
-    div.appendChild(ul);
-    lists.appendChild(div);
+    if (e.clientY < midpoint) {
+      dropIndex = i;
+      break;
+    }
+  }
+
+  if (dragIndex === null || dragIndex === dropIndex) return;
+
+  const updated = [...teams[team]];
+  const [moved] = updated.splice(dragIndex, 1);
+  updated.splice(dropIndex, 0, moved);
+
+  socket.send(JSON.stringify({
+    type: "reorder",
+    team,
+    items: updated
+  }));
+
+  dragIndex = null;
+  });
   }
 }
 

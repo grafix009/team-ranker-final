@@ -10,11 +10,17 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const DATA_FILE = path.join(__dirname, "data", "rankings.json");
+
+// Ensure data directory exists (Render-safe)
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
 let teams = {};
 
 function load() {
   if (fs.existsSync(DATA_FILE)) {
-    teams = JSON.parse(fs.readFileSync(DATA_FILE));
+    teams = JSON.parse(fs.readFileSync(DATA_FILE, "utf8"));
   } else {
     teams = { "Team A": [], "Team B": [] };
     save();

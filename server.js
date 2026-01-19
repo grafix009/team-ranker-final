@@ -10,6 +10,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const DATA_FILE = path.join(__dirname, "data", "rankings.json");
+const DATA_DIR = path.dirname(DATA_FILE);
 
 // Ensure data directory exists (Render-safe)
 if (!fs.existsSync(DATA_DIR)) {

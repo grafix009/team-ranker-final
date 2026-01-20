@@ -1,99 +1,131 @@
-
 const protocol = location.protocol === "https:" ? "wss" : "ws";
 const socket = new WebSocket(`${protocol}://${location.host}`);
+
 const lists = document.getElementById("lists");
 
-socket.onmessage = e => {
-  const d = JSON.parse(e.data);
-  if (d.teams) render(d.teams);
+// ✅ GLOBAL STATE (THIS WAS MISSING)
+let currentTeams = {};
+
+socket.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  if (data.teams) {
+    currentTeams = data.teams;
+    renderTeams();
+  }
 };
 
-function render(teams) {
+// =======================
+// RENDER
+// =======================
+function renderTeams() {
   lists.innerHTML = "";
-  for (const team in teams) {
+
+  for (const team in currentTeams) {
     const div = document.createElement("div");
     div.className = "team";
-    div.innerHTML = `<h4>${team}</h4>
+
+    div.innerHTML = `
+      <h4>${team}</h4>
       <button onclick="renameTeam('${team}')">Rename</button>
-      <button onclick="deleteTeam('${team}')">Delete</button>`;
+      <button onclick="deleteTeam('${team}')">Delete</button>
+    `;
 
     const ul = document.createElement("ul");
-let dragIndex = null;
+    let dragIndex = null;
 
-teams[team].forEach((item, idx) => {
-  const li = document.createElement("li");
-  li.textContent = `${idx + 1}. ${item.text}`;
-  li.draggable = true;
+    currentTeams[team].forEach((item, idx) => {
+      const li = document.createElement("li");
+      li.textContent = `${idx + 1}. ${item.text}`;
+      li.draggable = true;
 
-  li.addEventListener("dragstart", () => {
-    dragIndex = idx;
-  });
+      li.addEventListener("dragstart", () => {
+        dragIndex = idx;
+      });
 
-  ul.appendChild(li);
-});
+      ul.appendChild(li);
+    });
 
-ul.addEventListener("dragover", (e) => {
-  e.preventDefault();
-});
+    // ✅ DRAG OVER
+    ul.addEventListener("dragover", (e) => {
+      e.preventDefault();
+    });
 
-ul.addEventListener("drop", (e) => {
-  e.preventDefault();
+    // ✅ DROP (PRECISE)
+    ul.addEventListener("drop", (e) => {
+      e.preventDefault();
+      if (dragIndex === null) return;
 
-  if (dragIndex === null) return;
+      const items = Array.from(ul.children);
+      let dropIndex = items.length;
 
-  const items = Array.from(ul.children);
-  let dropIndex = items.length;
+      for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
 
-  for (let i = 0; i < items.length; i++) {
-    const rect = items[i].getBoundingClientRect();
-    const midpoint = rect.top + rect.height / 2;
+        if (e.clientY < midpoint) {
+          dropIndex = i;
+          break;
+        }
+      }
 
-    if (e.clientY < midpoint) {
-      dropIndex = i;
-      break;
-    }
-  }
+      if (dropIndex === dragIndex) return;
 
-  if (dropIndex === dragIndex) return;
+      const updated = [...currentTeams[team]];
+      const [moved] = updated.splice(dragIndex, 1);
+      updated.splice(dropIndex, 0, moved);
 
-  const updated = [...teams[team]];
-  const [moved] = updated.splice(dragIndex, 1);
-  updated.splice(dropIndex, 0, moved);
+      socket.send(JSON.stringify({
+        type: "reorder",
+        team,
+        items: updated
+      }));
 
-  socket.send(JSON.stringify({
-    type: "reorder",
-    team,
-    items: updated
-  }));
-
-  dragIndex = null;
-});
+      dragIndex = null;
+    });
 
     div.appendChild(ul);
     lists.appendChild(div);
   }
 }
 
+// =======================
+// ACTIONS
+// =======================
 function addItem() {
   socket.send(JSON.stringify({
-    type:"addItem",
-    item:{ text:text.value, number:num.value }
+    type: "addItem",
+    item: {
+      text: document.getElementById("text").value,
+      number: document.getElementById("num").value
+    }
   }));
 }
 
 function addTeam() {
-  socket.send(JSON.stringify({ type:"addTeam", name:teamName.value }));
+  const name = document.getElementById("teamName").value.trim();
+  if (!name) return alert("Enter a team name");
+  socket.send(JSON.stringify({ type: "addTeam", name }));
+  document.getElementById("teamName").value = "";
 }
 
-function renameTeam(name) {
-  const n = prompt("New name", name);
-  if(n) socket.send(JSON.stringify({ type:"renameTeam", oldName:name, newName:n }));
+function renameTeam(oldName) {
+  const newName = prompt("New team name:", oldName);
+  if (!newName) return;
+  socket.send(JSON.stringify({
+    type: "renameTeam",
+    oldName,
+    newName
+  }));
 }
 
 function deleteTeam(name) {
-  if(confirm("Delete "+name+"?"))
-    socket.send(JSON.stringify({ type:"deleteTeam", name }));
+  if (!confirm(`Delete ${name}?`)) return;
+  socket.send(JSON.stringify({
+    type: "deleteTeam",
+    name
+  }));
 }
+
 
 function exportCSV() {
   let csv = "";
